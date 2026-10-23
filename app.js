@@ -139,14 +139,14 @@ const PROJECTS = [
   {
     id: "villa-valtice",
     title: "Víno Villa Valtice",
-    category: "logo",
+    category: "packaging",
     year: "2026",
     client: "Villa Valtice",
-    collaboration: "Přímá spolupráce",
-    role: "Brand Designer",
+    collaboration: "Fiala & Šebek",
+    role: "Art Director",
     baseHeight: 245,
     visualType: "wine-bottle",
-    description: "Kompletní redesign vizuální identity a prémiové řady etiket pro tradiční moravské vinařství Villa Valtice. Spojení heraldické tradice s čistou současnou typografií a slepotiskem."
+    description: "South Moravia, a rich region, ubiquitous wineries and the sun always rising above them. One such boutiquewinery is located in Valtice. Its owner asked us to design the labels for his range of premium wines. We presented several designs to the client, from the beginning he preferred the one with the sun symbol made of the letters „V“, which eventually became the final design after a few modifications."
   },
   {
     id: "big-shock-kv",
