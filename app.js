@@ -135,18 +135,19 @@ function getProjectHoverSVG(project) {
   }
 }
 
-const PROJECTS = [
+// Load projects dynamically from PORTFOLIO_DATA or fallback
+const PROJECTS = (window.PORTFOLIO_DATA && window.PORTFOLIO_DATA.projects) ? window.PORTFOLIO_DATA.projects : [
   {
     id: "villa-valtice",
     title: "Víno Villa Valtice",
-    category: "packaging",
+    category: "logo",
     year: "2026",
     client: "Villa Valtice",
-    collaboration: "Fiala & Šebek",
-    role: "Art Director",
+    collaboration: "Přímá spolupráce",
+    role: "Brand Designer",
     baseHeight: 245,
     visualType: "wine-bottle",
-    description: "South Moravia, a rich region, ubiquitous wineries and the sun always rising above them. One such boutiquewinery is located in Valtice. Its owner asked us to design the labels for his range of premium wines. We presented several designs to the client, from the beginning he preferred the one with the sun symbol made of the letters „V“, which eventually became the final design after a few modifications."
+    description: "Kompletní redesign vizuální identity a prémiové řady etiket pro tradiční moravské vinařství Villa Valtice. Spojení heraldické tradice s čistou současnou typografií a slepotiskem."
   },
   {
     id: "big-shock-kv",
@@ -415,10 +416,14 @@ function createTileElement(item, indexOffset = 0) {
   el.setAttribute("tabindex", "0");
   el.setAttribute("role", "button");
 
+  const hoverVisualContent = item.hoverImage
+    ? `<img src="${item.hoverImage}" style="width:100%; height:100%; object-fit:cover;">`
+    : getProjectHoverSVG(item);
+
   el.innerHTML = `
     <div class="tile-fluid-bg"></div>
     <div class="tile-hover-visual">
-      ${getProjectHoverSVG(item)}
+      ${hoverVisualContent}
     </div>
     <div class="tile-caption">
       <div class="tile-title">${escapeHtml(item.title)}</div>
@@ -444,7 +449,7 @@ function escapeHtml(str) {
     .replace(/"/g, "&quot;");
 }
 
-// Render the multi-column masonry grid with the permanent black Contact tile
+// Render the multi-column masonry grid with the permanent black Contact tile (STRICTLY NO DUPLICATE PROJECTS)
 function renderGrid() {
   const grid = document.getElementById("masonryGrid");
   if (!grid) return;
@@ -459,32 +464,32 @@ function renderGrid() {
   grid.innerHTML = "";
   columnStates = [];
 
-  // Distribute items across columns.
-  // Guarantee: The black CONTACT_TILE ("O mně & Kontakt") is ALWAYS placed in Column 2 (index 1, or 0 if 1 col) as the second tile!
-  const colBuckets = Array.from({ length: cols }, () => []);
+  // Contact tile data from PORTFOLIO_DATA or default
+  const contactData = (window.PORTFOLIO_DATA && window.PORTFOLIO_DATA.contact) ? window.PORTFOLIO_DATA.contact : CONTACT_TILE;
+  const activeContactTile = {
+    id: "o-mne-kontakt",
+    title: contactData.title || "O mně &\nKontakt",
+    isContact: true,
+    baseHeight: contactData.baseHeight || 175
+  };
 
-  // If no project matches a strict filter combination, still show CONTACT_TILE and a subtle hint
+  const colBuckets = Array.from({ length: cols }, () => []);
   const contactColIndex = cols > 1 ? 1 : 0;
 
-  if (filtered.length > 0) {
-    // Repeat filtered projects enough times per column so every column has a rich vertical stream to flow seamlessly
-    const minItemsPerCol = 5;
-    let pool = [...filtered];
-    while (pool.length < cols * minItemsPerCol) {
-      pool = pool.concat(filtered);
+  // STRICTLY ONE INSTANCE PER PROJECT (No repeating / no duplication)
+  // 1. Place the permanent black Contact tile at position 0 or 1 in column 2
+  colBuckets[contactColIndex].push(activeContactTile);
+
+  // 2. Distribute filtered projects evenly across columns — exactly once each!
+  let currentTargetCol = 0;
+  filtered.forEach((proj) => {
+    // Round-robin across columns, balancing heights
+    if (currentTargetCol === contactColIndex && colBuckets[contactColIndex].length > 0 && colBuckets[0].length === 0) {
+      currentTargetCol = 0;
     }
-
-    pool.forEach((proj, idx) => {
-      const c = idx % cols;
-      colBuckets[c].push(proj);
-    });
-
-    // Insert the permanent black CONTACT_TILE at position 1 of column 2 (just below Key visual Big Shock, matching the mockup!)
-    colBuckets[contactColIndex].splice(1, 0, CONTACT_TILE);
-  } else {
-    // Even if 0 projects match a custom filter combination, CONTACT_TILE is ALWAYS visible!
-    colBuckets[contactColIndex].push(CONTACT_TILE);
-  }
+    colBuckets[currentTargetCol].push(proj);
+    currentTargetCol = (currentTargetCol + 1) % cols;
+  });
 
   colBuckets.forEach((bucket, colIdx) => {
     const colEl = document.createElement("div");
@@ -492,16 +497,10 @@ function renderGrid() {
     const trackEl = document.createElement("div");
     trackEl.className = "masonry-column-track";
 
-    // Build primary set + duplicate set for seamless infinite vertical flow
-    if (bucket.length > 0) {
-      bucket.forEach((item, idx) => {
-        trackEl.appendChild(createTileElement(item, colIdx * 10 + idx));
-      });
-      // Duplicate set for seamless loop when flowing
-      bucket.forEach((item, idx) => {
-        trackEl.appendChild(createTileElement(item, colIdx * 10 + idx + 50));
-      });
-    }
+    // Append each item exactly once!
+    bucket.forEach((item, idx) => {
+      trackEl.appendChild(createTileElement(item, colIdx * 10 + idx));
+    });
 
     colEl.appendChild(trackEl);
 
@@ -514,40 +513,29 @@ function renderGrid() {
 
     grid.appendChild(colEl);
 
-    // Alternating slow vertical drift speeds (px per second)
-    const dir = colIdx % 2 === 0 ? -1 : 1;
-    const speed = (11 + (colIdx % 3) * 2.5) * dir;
+    // Subtle breathing / wave drift per column without duplicating items
+    const dir = colIdx % 2 === 0 ? 1 : -1;
     columnStates.push({
       colIdx,
       trackEl,
-      offsetY: dir > 0 ? -220 : 0,
-      speed,
-      currentSpeedFactor: 1
+      baseOffset: colIdx * 12,
+      dir,
+      speed: 0.8 + (colIdx % 3) * 0.3
     });
   });
 
   updateFilterBadges();
 }
 
-// Smooth 60fps continuous flowing loop
+// Gentle organic vertical wave motion without repeating tiles
 function animateFlow(now) {
-  const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
-  lastFrameTime = now;
+  const t = now * 0.001; // seconds
 
   columnStates.forEach((col) => {
-    const targetFactor = (state.flowPaused || state.hoveredCol === col.colIdx) ? 0 : 1;
-    // Smooth easing when pausing/resuming on hover
-    col.currentSpeedFactor += (targetFactor - col.currentSpeedFactor) * Math.min(1, dt * 6);
-
-    const halfHeight = col.trackEl.scrollHeight / 2;
-    if (halfHeight > 50) {
-      col.offsetY += col.speed * col.currentSpeedFactor * dt;
-      if (col.speed < 0 && col.offsetY <= -halfHeight) {
-        col.offsetY += halfHeight;
-      } else if (col.speed > 0 && col.offsetY >= 0) {
-        col.offsetY -= halfHeight;
-      }
-      col.trackEl.style.transform = `translate3d(0, ${col.offsetY.toFixed(2)}px, 0)`;
+    if (!state.flowPaused && state.hoveredCol !== col.colIdx) {
+      // Gentle natural breathing drift (travels ±28px smoothly up and down)
+      const drift = Math.sin(t * col.speed + col.colIdx * 1.4) * 26 * col.dir;
+      col.trackEl.style.transform = `translate3d(0, ${drift.toFixed(2)}px, 0)`;
     }
   });
 
@@ -714,7 +702,7 @@ function updateFilterBadges() {
   }
 }
 
-// Modals (Project Detail & O mně & Kontakt)
+// Modals (Behance-Style Project Case Study & O mně & Kontakt)
 function openProjectModal(project) {
   const backdrop = document.getElementById("modalBackdrop");
   const content = document.getElementById("modalContent");
@@ -722,21 +710,61 @@ function openProjectModal(project) {
 
   const catInfo = CATEGORY_META[project.category] || { label: project.category };
 
+  // Generate blocks HTML (Behance modular stream)
+  let blocksHtml = "";
+  if (project.blocks && project.blocks.length > 0) {
+    blocksHtml = project.blocks.map(b => {
+      if (b.type === "text") {
+        return `
+          <div style="margin: 28px 0;">
+            ${b.heading ? `<h3 style="font-family: var(--font-heading); font-size: 1.4rem; font-weight: 700; margin-bottom: 8px;">${escapeHtml(b.heading)}</h3>` : ''}
+            ${b.body ? `<p style="font-size: 1.02rem; line-height: 1.65; color: #444;">${escapeHtml(b.body)}</p>` : ''}
+          </div>
+        `;
+      } else if (b.type === "image-full") {
+        const src = b.imageUrl || (b.visualPreset ? '' : '');
+        if (src) {
+          return `<div style="margin: 20px 0; border-radius: 12px; overflow: hidden;"><img src="${src}" style="width:100%; height:auto; display:block;">${b.caption ? `<div style="font-size:0.8rem; color:#888; margin-top:6px; text-align:center;">${escapeHtml(b.caption)}</div>` : ''}</div>`;
+        } else {
+          return `<div style="margin: 20px 0; border-radius: 12px; overflow: hidden; height: 320px;">${getProjectHoverSVG(project)}</div>`;
+        }
+      } else if (b.type === "image-grid-2") {
+        return `
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0;">
+            <div style="border-radius: 10px; overflow: hidden; background: #eee; min-height: 200px;">
+              ${b.imageLeft ? `<img src="${b.imageLeft}" style="width:100%; height:100%; object-fit:cover;">` : ''}
+            </div>
+            <div style="border-radius: 10px; overflow: hidden; background: #eee; min-height: 200px;">
+              ${b.imageRight ? `<img src="${b.imageRight}" style="width:100%; height:100%; object-fit:cover;">` : ''}
+            </div>
+          </div>
+        `;
+      } else if (b.type === "quote") {
+        return `
+          <div style="border-left: 3px solid #111; padding: 18px 24px; margin: 28px 0; background: #fafafc; border-radius: 0 12px 12px 0;">
+            <div style="font-size: 1.25rem; font-style: italic; line-height: 1.5; color: #111;">“${escapeHtml(b.quote)}”</div>
+            ${b.author ? `<div style="font-size: 0.85rem; color: #777; margin-top: 8px;">${escapeHtml(b.author)}</div>` : ''}
+          </div>
+        `;
+      }
+      return "";
+    }).join("");
+  } else {
+    blocksHtml = `<p style="font-size: 1.05rem; line-height: 1.65; color: var(--text-secondary); margin: 20px 0;">${escapeHtml(project.description)}</p>`;
+  }
+
   content.className = "modal-card";
+  content.style.maxWidth = "860px";
   content.innerHTML = `
     <button type="button" class="modal-close" aria-label="Zavřít" id="modalCloseBtn">✕</button>
-    <div class="modal-hero">
-      ${getProjectHoverSVG(project)}
-    </div>
-    <div class="modal-body">
+    <div class="modal-body" style="padding: 40px 48px; max-height: 85vh; overflow-y: auto;">
       <div class="modal-tag-row">
         <span class="modal-tag">${escapeHtml(catInfo.label)}</span>
         <span class="modal-tag">${escapeHtml(project.year)}</span>
         <span class="modal-tag">${escapeHtml(project.role)}</span>
       </div>
-      <h2 class="modal-title">${escapeHtml(project.title)}</h2>
-      <p class="modal-desc">${escapeHtml(project.description)}</p>
-      <div class="modal-meta-grid">
+      <h2 class="modal-title" style="font-size: 2.2rem; margin-top: 10px; margin-bottom: 12px;">${escapeHtml(project.title)}</h2>
+      <div class="modal-meta-grid" style="margin-bottom: 30px;">
         <div>
           <div class="meta-box-label">Klient</div>
           <div class="meta-box-value">${escapeHtml(project.client)}</div>
@@ -754,6 +782,11 @@ function openProjectModal(project) {
           <div class="meta-box-value">${escapeHtml(project.year)}</div>
         </div>
       </div>
+      
+      <!-- Behance-style Stream of Blocks -->
+      <div class="case-study-blocks">
+        ${blocksHtml}
+      </div>
     </div>
   `;
 
@@ -766,37 +799,51 @@ function openContactModal() {
   const content = document.getElementById("modalContent");
   if (!backdrop || !content) return;
 
+  const contactData = (window.PORTFOLIO_DATA && window.PORTFOLIO_DATA.contact) ? window.PORTFOLIO_DATA.contact : {
+    headline: "František Podaný",
+    roles: ["Ideamaker", "Art Director", "Brand & Packaging Designer"],
+    bio: "Tvořím vizuální identity, obalový design, klíčové vizuály a komunikační kampaně, které propojují silnou ideu s čistým řemeslem.",
+    email: "frantisek@podany.cz",
+    phone: "+420 777 000 000",
+    location: "Praha / ČR",
+    links: [
+      { label: "LinkedIn", url: "#" },
+      { label: "Behance", url: "#" },
+      { label: "Instagram", url: "#" }
+    ]
+  };
+
+  const rolesHtml = (contactData.roles || []).map(r => `<span class="modal-tag" style="background:#26262e;color:#fff;">${escapeHtml(r)}</span>`).join("");
+  const linksHtml = (contactData.links || []).map(l => `<a href="${escapeHtml(l.url)}" target="_blank" class="contact-link-pill secondary">${escapeHtml(l.label)} ↗</a>`).join("");
+
   content.className = "modal-card contact-card-dark";
   content.innerHTML = `
     <button type="button" class="modal-close" aria-label="Zavřít" id="modalCloseBtn">✕</button>
     <div class="modal-body" style="padding-top: 38px;">
       <div class="modal-tag-row">
-        <span class="modal-tag" style="background:#26262e;color:#fff;">Ideamaker</span>
-        <span class="modal-tag" style="background:#26262e;color:#fff;">Art Director</span>
-        <span class="modal-tag" style="background:#26262e;color:#fff;">Brand &amp; Packaging Designer</span>
+        ${rolesHtml}
       </div>
-      <h2 class="modal-title" style="font-size: 2rem; margin-top: 6px;">František Podaný</h2>
+      <h2 class="modal-title" style="font-size: 2rem; margin-top: 6px;">${escapeHtml(contactData.headline || 'František Podaný')}</h2>
       <p class="modal-desc">
-        Tvořím vizuální identity, obalový design, klíčové vizuály a komunikační kampaně, které propojují silnou ideu s čistým řemeslem. Spolupracuji napřímo s klienty i s předními kreativními agenturami.
+        ${escapeHtml(contactData.bio || '')}
       </p>
       <div class="modal-meta-grid">
         <div>
           <div class="meta-box-label">E-mail</div>
-          <div class="meta-box-value">frantisek@podany.cz</div>
+          <div class="meta-box-value"><a href="mailto:${escapeHtml(contactData.email)}" style="color:#fff; text-decoration:none;">${escapeHtml(contactData.email)}</a></div>
         </div>
         <div>
           <div class="meta-box-label">Telefon</div>
-          <div class="meta-box-value">+420 777 000 000</div>
+          <div class="meta-box-value">${escapeHtml(contactData.phone)}</div>
         </div>
         <div>
           <div class="meta-box-label">Lokalita</div>
-          <div class="meta-box-value">Praha / ČR</div>
+          <div class="meta-box-value">${escapeHtml(contactData.location)}</div>
         </div>
       </div>
       <div class="contact-links">
-        <a href="mailto:frantisek@podany.cz" class="contact-link-pill">Napsat e-mail ↗</a>
-        <a href="#linkedin" class="contact-link-pill secondary" onclick="event.preventDefault()">LinkedIn</a>
-        <a href="#behance" class="contact-link-pill secondary" onclick="event.preventDefault()">Behance / Instagram</a>
+        <a href="mailto:${escapeHtml(contactData.email)}" class="contact-link-pill">Napsat e-mail ↗</a>
+        ${linksHtml}
       </div>
     </div>
   `;
