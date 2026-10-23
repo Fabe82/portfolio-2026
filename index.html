@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>František Podaný — portfolio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="page-shell">
+    <!-- Hlavička: František Podaný / portfolio -->
+    <header class="site-header">
+      <div class="brand-identity" id="brandIdentity" title="Zobrazit vše">
+        <h1 class="brand-name">František Podaný</h1>
+        <div class="brand-subtitle">portfolio</div>
+      </div>
+
+      <div class="header-actions">
+        <button type="button" class="flow-toggle-btn" id="flowToggleBtn" title="Pozastavit nebo spustit plynulý pohyb sloupců">
+          <span class="flow-indicator"></span>
+          <span class="flow-btn-text">Plynutí aktivní</span>
+        </button>
+        <button type="button" class="menu-btn" id="menuBtn" aria-label="O mně & Kontakt">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Lišta filtrů + Posuvník Velikost dlaždic -->
+    <nav class="controls-bar" aria-label="Filtrování portfolia">
+      <div class="filters-group">
+        <!-- Datum -->
+        <div class="filter-dropdown" id="dd-year">
+          <button type="button" class="filter-pill">
+            <span class="pill-text">Datum</span>
+            <span class="caret">▾</span>
+          </button>
+          <div class="dropdown-menu"></div>
+        </div>
+
+        <!-- Typ práce + 4 barevné body (Logo, Packaging, Key Visual, Komunikace) -->
+        <div class="filter-dropdown" id="dd-category">
+          <button type="button" class="filter-pill">
+            <span class="pill-text">Typ práce</span>
+            <span class="caret">▾</span>
+            <span class="category-dots" title="Rychlý filtr kliknutím na barvu">
+              <span class="cat-dot dot-logo" data-cat-quick="logo" title="Logo"></span>
+              <span class="cat-dot dot-kv" data-cat-quick="key-visual" title="Key Visual"></span>
+              <span class="cat-dot dot-packaging" data-cat-quick="packaging" title="Packaging"></span>
+              <span class="cat-dot dot-comm" data-cat-quick="komunikace" title="Komunikace"></span>
+            </span>
+          </button>
+          <div class="dropdown-menu"></div>
+        </div>
+
+        <!-- Klient -->
+        <div class="filter-dropdown" id="dd-client">
+          <button type="button" class="filter-pill">
+            <span class="pill-text">Klient</span>
+            <span class="caret">▾</span>
+          </button>
+          <div class="dropdown-menu"></div>
+        </div>
+
+        <!-- Spolupráce s -->
+        <div class="filter-dropdown" id="dd-collaboration">
+          <button type="button" class="filter-pill">
+            <span class="pill-text">Spolupráce s</span>
+            <span class="caret">▾</span>
+          </button>
+          <div class="dropdown-menu"></div>
+        </div>
+
+        <!-- Role -->
+        <div class="filter-dropdown" id="dd-role">
+          <button type="button" class="filter-pill">
+            <span class="pill-text">Role</span>
+            <span class="caret">▾</span>
+          </button>
+          <div class="dropdown-menu"></div>
+        </div>
+
+        <!-- Tlačítko pro vyčištění aktivních filtrů -->
+        <button type="button" class="reset-filters-btn" id="resetFiltersBtn">
+          ✕ Zrušit filtry
+        </button>
+      </div>
+
+      <!-- Posuvník Velikost dlaždic (výchozí stav vlevo = 5 vedle sebe, maximum vpravo = 2 vedle sebe) -->
+      <div class="size-control">
+        <label for="tileSizeSlider" class="size-label">Velikost dlaždic</label>
+        <input
+          type="range"
+          id="tileSizeSlider"
+          class="size-slider"
+          min="0"
+          max="3"
+          step="1"
+          value="0"
+          aria-label="Velikost dlaždic (od 5 vedle sebe do 2 vedle sebe)"
+        >
+      </div>
+    </nav>
+
+    <!-- Hlavní plynoucí mřížka dlaždic (max. 5 vedle sebe se stejnou šířkou na webu) -->
+    <main class="portfolio-viewport">
+      <div class="masonry-grid" id="masonryGrid"></div>
+    </main>
+  </div>
+
+  <!-- Modální okno pro detail projektu / O mně & Kontakt -->
+  <div class="modal-backdrop" id="modalBackdrop" role="dialog" aria-modal="true">
+    <div class="modal-card" id="modalContent"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
